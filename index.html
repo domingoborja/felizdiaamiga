@@ -314,8 +314,7 @@
 
   function wireMesh(geo, color, opacity){
     return new THREE.Mesh(geo, new THREE.MeshBasicMaterial({
-      color, wireframe:true, transparent:true, opacity,
-      blending:THREE.AdditiveBlending, depthWrite:false
+      color, wireframe:true, transparent:true, opacity, depthWrite:false
     }));
   }
 
@@ -323,10 +322,11 @@
     for(let i=0;i<wh.n;i++){
       const az = wh.off + (i/wh.n)*Math.PI*2;
       const geo = buildBladeGeo(wh.w, wh.l, wh.curl, segW, segL);
-      const m = wireMesh(geo, color, .8);
+      const m = wireMesh(geo, color, .85);
       m.position.y = wh.y;
-      m.rotation.x = wh.tilt;
+      m.rotation.order = 'YXZ';   // primero gira a su posición (Y), luego se abre hacia afuera (X)
       m.rotation.y = az;
+      m.rotation.x = wh.tilt;
       group.add(m);
     }
   }
@@ -338,13 +338,13 @@
     p.whorls.forEach(wh => addWhorl(group, wh, p.color, 5, 12));
 
     if(p.disc){ // disco central plano (girasol)
-      const disc = wireMesh(new THREE.CylinderGeometry(p.disc,p.disc,.05,28,3), 0x6b4226, .8);
+      const disc = wireMesh(new THREE.CylinderGeometry(p.disc,p.disc,.05,28,3), 0x8a5a2c, .85);
       group.add(disc);
     }
     if(p.stamens){ // estambres finos (tulipán/rosa)
       for(let i=0;i<p.stamens;i++){
         const az = (i/p.stamens)*Math.PI*2;
-        const st = wireMesh(new THREE.CylinderGeometry(.008,.014,.85,5), 0xfff3c4, .7);
+        const st = wireMesh(new THREE.CylinderGeometry(.008,.014,.85,5), 0xffe9a8, .8);
         st.position.set(Math.cos(az)*.04, .42, Math.sin(az)*.04);
         st.rotation.set(Math.sin(az)*.09, 0, Math.cos(az)*.09);
         group.add(st);
@@ -352,7 +352,7 @@
     }
 
     // tallo
-    const stem = wireMesh(new THREE.CylinderGeometry(.035,.05,p.stemLen,10,6), p.color, .55);
+    const stem = wireMesh(new THREE.CylinderGeometry(.035,.05,p.stemLen,8,6), p.color, .7);
     stem.position.y = -p.stemLen/2 + .05;
     group.add(stem);
 
@@ -360,10 +360,11 @@
     for(let i=0;i<p.leafCount;i++){
       const az = (i/p.leafCount)*Math.PI*2 + Math.PI/6;
       const geo = buildBladeGeo(p.leafW, p.leafL, p.leafCurl, 4, 12);
-      const leaf = wireMesh(geo, p.color, .5);
+      const leaf = wireMesh(geo, p.color, .6);
       leaf.position.y = p.leafY;
-      leaf.rotation.x = p.leafTilt;
+      leaf.rotation.order = 'YXZ';
       leaf.rotation.y = az;
+      leaf.rotation.x = p.leafTilt;
       group.add(leaf);
     }
 
@@ -402,7 +403,7 @@
     try{
       composer = new THREE.EffectComposer(renderer);
       composer.addPass(new THREE.RenderPass(scene, camera));
-      const bloom = new THREE.UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight), 0.85, 0.4, 0.25);
+      const bloom = new THREE.UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight), 0.4, 0.35, 0.55);
       composer.addPass(bloom);
       useBloom = true;
     }catch(e){ useBloom = false; }
