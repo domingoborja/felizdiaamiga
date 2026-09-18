@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Una flor digital para ti</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌻</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,500;0,600;1,500&family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --cream:#fdf6e6;
+    --gold:#ffcf4d;
+    --gold-deep:#f0ac1f;
+    --brown:#5b3a20;
+    --brown-deep:#3a2414;
+    --ink:#3a2b18;
+    --ink-soft:#7a6a52;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;height:100%;overflow:hidden;background:#08060a;color:var(--ink);
+    font-family:"Poppins",sans-serif;}
+  body{position:relative;width:100%;height:100vh;height:100dvh;}
+
+  svg.bg-flowers{position:absolute;inset:0;width:100%;height:100%;z-index:0;background:var(--cream);
+    transition:opacity .8s ease;}
+  svg.bg-flowers.gone{opacity:0;}
+
+  #three-canvas{position:absolute;inset:0;z-index:2;opacity:0;transition:opacity 1.4s ease;}
+  #three-canvas.show{opacity:1;}
+  #three-canvas.flicker{animation:holoFlicker 6.5s infinite;}
+  @keyframes holoFlicker{
+    0%,100%{opacity:1;filter:brightness(1);}
+    91%{opacity:1;filter:brightness(1);}
+    91.5%{opacity:.82;filter:brightness(1.25);}
+    92%{opacity:1;filter:brightness(1);}
+    95%{opacity:1;}
+    95.4%{opacity:.88;filter:brightness(1.15);}
+    95.8%{opacity:1;filter:brightness(1);}
+  }
+  canvas#fx{position:absolute;inset:0;z-index:6;pointer-events:none;}
+  .scanlines{position:absolute;inset:0;z-index:7;pointer-events:none;opacity:0;
+    background:repeating-linear-gradient(0deg, rgba(255,213,120,.08) 0px, rgba(255,213,120,.08) 1px, transparent 2px, transparent 4px);
+    mix-blend-mode:screen;transition:opacity 1.4s ease;animation:scanMove 5s linear infinite;}
+  .scanlines.show{opacity:.5;}
+  @keyframes scanMove{from{background-position-y:0}to{background-position-y:160px}}
+
+  /* ---------- INTRO ---------- */
+  #intro{position:absolute;inset:0;z-index:10;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:26px;
+    text-align:center;padding:0 30px;transition:opacity .8s ease, transform .8s ease;}
+  #intro.hide{opacity:0;transform:scale(1.05);pointer-events:none;}
+  #intro .eyebrow{font-family:"Fraunces",serif;font-style:italic;font-weight:500;font-size:17px;color:var(--ink-soft);margin:0;max-width:280px;}
+  #start-btn{
+    font-family:"Poppins",sans-serif;font-weight:600;font-size:16px;color:#fdf1d6;letter-spacing:.02em;
+    background:linear-gradient(150deg,#8a5a34,var(--brown) 55%,var(--brown-deep));
+    border:1px solid rgba(255,207,77,.4);
+    padding:18px 38px;border-radius:999px;cursor:pointer;
+    box-shadow:0 10px 26px rgba(58,36,20,.35), inset 0 1px 0 rgba(255,255,255,.18);
+    transition:left .45s cubic-bezier(.3,1.7,.35,1), top .45s cubic-bezier(.3,1.7,.35,1), transform .45s cubic-bezier(.3,1.7,.35,1);
+  }
+  #start-btn:active{filter:brightness(.95);}
+
+  /* ---------- ESCENA PRINCIPAL ---------- */
+  #main{position:absolute;inset:0;opacity:0;transition:opacity 1s ease;z-index:5;pointer-events:none;}
+  #main.show{opacity:1;pointer-events:auto;}
+
+  .card{position:absolute;top:66%;left:50%;transform:translateX(-50%);width:min(88%,420px);text-align:center;z-index:6;
+    opacity:0;transition:opacity 1.2s ease;}
+  .card.on{opacity:1;}
+  .card h1{font-family:"Fraunces",serif;font-weight:600;font-style:italic;font-size:clamp(22px,6vw,28px);margin:0 0 10px;color:#fdf1d6;}
+  .card p{font-family:"Fraunces",serif;font-size:15.5px;line-height:1.6;color:#e6d9bd;margin:0;}
+  .card .sig{display:block;margin-top:12px;font-family:"Poppins",sans-serif;font-size:12px;letter-spacing:.02em;color:var(--gold);}
+
+  .hint{position:absolute;bottom:4%;left:50%;transform:translateX(-50%);z-index:6;font-size:12px;color:#c9bb98;
+    opacity:0;animation:fadeInOut 8s ease 2.8s 1 forwards;}
+  @keyframes fadeInOut{0%{opacity:0}18%{opacity:.8}85%{opacity:.8}100%{opacity:0}}
+
+  @media (prefers-reduced-motion: reduce){
+    #start-btn{transition:none;}
+  }
+</style>
+</head>
+<body>
+
+<!-- fondo vectorial de flores amarillas (solo pantalla de inicio) -->
+<svg class="bg-flowers" id="bgFlowers" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="petalGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffe08a"/>
+      <stop offset="100%" stop-color="#f0ac1f"/>
+    </linearGradient>
+    <symbol id="flowerMotif" viewBox="-50 -50 100 100">
+      <g fill="url(#petalGrad)">
+        <ellipse cx="0" cy="-27" rx="11" ry="23" transform="rotate(0)"/>
+        <ellipse cx="0" cy="-27" rx="11" ry="23" transform="rotate(45)"/>
+        <ellipse cx="0" cy="-27" rx="11" ry="23" transform="rotate(90)"/>
+        <ellipse cx="0" cy="-27" rx="11" ry="23" transform="rotate(135)"/>
+        <ellipse cx="0" cy="-27" rx="11" ry="23" transform="rotate(180)"/>
+        <ellipse cx="0" cy="-27" rx="11" ry="23" transform="rotate(225)"/>
+        <ellipse cx="0" cy="-27" rx="11" ry="23" transform="rotate(270)"/>
+        <ellipse cx="0" cy="-27" rx="11" ry="23" transform="rotate(315)"/>
+      </g>
+      <circle r="13" fill="#5b3a20"/>
+    </symbol>
+  </defs>
+</svg>
+
+<canvas id="three-canvas"></canvas>
+<div class="scanlines" id="scanlines"></div>
+<canvas id="fx"></canvas>
+
+<!-- ============ PANTALLA DE INICIO ============ -->
+<div id="intro">
+  <p class="eyebrow">algo lindo te espera</p>
+  <button id="start-btn">presiona aquí</button>
+</div>
+
+<!-- ============ ESCENA PRINCIPAL ============ -->
+<div id="main">
+  <div class="card" id="card">
+    <!-- ✏️ EDITA AQUÍ (opcional): cambia CARD_NAME y SENDER_NAME más abajo en el script -->
+    <h1 id="cardTitle">Para ti 🌻</h1>
+    <p>Como una flor que se dibuja a sí misma, curva a curva, hasta abrirse
+    del todo. Que esta primavera te encuentre floreciendo, justo así, a tu manera.</p>
+    <span class="sig" id="cardSig">— con cariño</span>
+  </div>
+  <p class="hint">toca la pantalla para más brillo</p>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/Pass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+<script>
+  /* =========================================================
+     ✏️ PERSONALIZA AQUÍ (deja vacío para un mensaje genérico)
+     ========================================================= */
+  const CARD_NAME   = "";      // ej: "Camila"  -> "Para ti, Camila 🌻"
+  const SENDER_NAME = "";      // ej: "Ale"      -> "— con cariño, Ale"
+  const FLOWER_TYPE = "random"; // "girasol" | "rosa" | "tulipan" | "random"
+
+  if(CARD_NAME)   document.getElementById('cardTitle').textContent = `Para ti, ${CARD_NAME} 🌻`;
+  if(SENDER_NAME) document.getElementById('cardSig').textContent = `— con cariño, ${SENDER_NAME}`;
+
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ---------------- fondo vectorial de inicio: sembrar flores dispersas ---------------- */
+  (function scatterFlowers(){
+    const svg = document.getElementById('bgFlowers');
+    const ns = 'http://www.w3.org/2000/svg';
+    for(let i=0;i<16;i++){
+      const use = document.createElementNS(ns,'use');
+      const x = Math.random()*100, y = Math.random()*100;
+      const s = 0.18 + Math.random()*0.55, r = Math.random()*360, op = 0.25+Math.random()*0.5;
+      use.setAttribute('href','#flowerMotif');
+      use.setAttribute('transform', `translate(${x} ${y}) scale(${s.toFixed(2)}) rotate(${r.toFixed(0)})`);
+      use.setAttribute('opacity', op.toFixed(2));
+      svg.appendChild(use);
+    }
+  })();
+
+  /* ---------------- juego del botón: esquiva 2 veces (posición + tamaño) ---------------- */
+  const btn = document.getElementById('start-btn');
+  const introEl = document.getElementById('intro');
+  const mainEl = document.getElementById('main');
+  const labels = ['presiona aquí', '¡uy, casi! de nuevo', 'ahora sí, en serio'];
+  let dodges = 0;
+  btn.textContent = labels[0];
+
+  function moveButton(){
+    const margin = 46;
+    const bw = btn.offsetWidth, bh = btn.offsetHeight;
+    const x = margin + Math.random()*Math.max(innerWidth - bw - margin*2, 0);
+    const y = margin + Math.random()*Math.max(innerHeight - bh - margin*2, 0);
+    const scale = 0.75 + Math.random()*0.7, rot = (Math.random()*16-8).toFixed(1);
+    btn.style.position = 'fixed';
+    btn.style.left = x+'px'; btn.style.top = y+'px';
+    btn.style.transform = `scale(${scale.toFixed(2)}) rotate(${rot}deg)`;
+  }
+
+  btn.addEventListener('click', ()=>{
+    if(dodges < 2){
+      dodges++;
+      if(!reduceMotion) moveButton();
+      btn.textContent = labels[dodges];
+      return;
+    }
+    enterScene();
+  });
+
+  function enterScene(){
+    introEl.classList.add('hide');
+    setTimeout(()=> introEl.style.display='none', 800);
+    document.getElementById('bgFlowers').classList.add('gone');
+    mainEl.classList.add('show');
+    const canvas3d = document.getElementById('three-canvas');
+    canvas3d.classList.add('show');
+    document.getElementById('scanlines').classList.add('show');
+    setTimeout(()=> document.getElementById('card').classList.add('on'), 1100);
+    setTimeout(()=> { if(!reduceMotion) canvas3d.classList.add('flicker'); }, 1600);
+    initThree();
+    if(!reduceMotion){
+      setInterval(()=>{
+        if(!flowerGroup || Math.random() < 0.45) return;
+        const s = flowerGroup.scale.x;
+        flowerGroup.scale.setScalar(s * (0.965 + Math.random()*0.07));
+        setTimeout(()=> flowerGroup && flowerGroup.scale.setScalar(1), 90);
+      }, 3200);
+    }
+  }
+
+  /* ---------------- brillos 2D más realistas (destello con núcleo + reflejo en cruz) ---------------- */
+  const fx = document.getElementById('fx');
+  const fctx = fx.getContext('2d');
+  function resizeFx(){ fx.width = innerWidth; fx.height = innerHeight; }
+  resizeFx(); addEventListener('resize', resizeFx);
+  let sparkles = [];
+  function burst(x,y){
+    for(let i=0;i<20;i++){
+      const a = Math.random()*Math.PI*2, sp = 0.6+Math.random()*3.2;
+      sparkles.push({
+        x,y, vx:Math.cos(a)*sp, vy:Math.sin(a)*sp - 0.6, life:1,
+        r: 0.8+Math.random()*2.2, star: Math.random() < 0.22
+      });
+    }
+  }
+  function drawGlint(p){
+    const g = fctx.createRadialGradient(p.x,p.y,0,p.x,p.y,p.r*5);
+    g.addColorStop(0,'#fffdf3'); g.addColorStop(.28,'#fff3c4');
+    g.addColorStop(.65,'#ffcf4d'); g.addColorStop(1,'rgba(255,207,77,0)');
+    fctx.fillStyle = g;
+    fctx.beginPath(); fctx.arc(p.x,p.y,p.r*5,0,Math.PI*2); fctx.fill();
+    if(p.star){
+      fctx.save();
+      fctx.translate(p.x,p.y);
+      fctx.globalAlpha *= 0.8;
+      fctx.strokeStyle = '#fff8dd'; fctx.lineWidth = 1;
+      const L = p.r*7;
+      fctx.beginPath(); fctx.moveTo(-L,0); fctx.lineTo(L,0); fctx.moveTo(0,-L); fctx.lineTo(0,L); fctx.stroke();
+      fctx.restore();
+    }
+  }
+  function tickFx(){
+    fctx.clearRect(0,0,fx.width,fx.height);
+    sparkles.forEach(p=>{
+      p.x+=p.vx; p.y+=p.vy; p.vy+=0.03; p.vx*=0.985; p.life-=0.018;
+      fctx.globalAlpha = Math.max(p.life,0);
+      drawGlint(p);
+    });
+    sparkles = sparkles.filter(p=>p.life>0);
+    fctx.globalAlpha = 1;
+    requestAnimationFrame(tickFx);
+  }
+  tickFx();
+
+  /* =========================================================
+     FLOR HOLOGRÁFICA (pétalos, tallo y hojas en malla de alambre)
+     ========================================================= */
+  const PRESETS = {
+    tulipan: {
+      whorls:[
+        {n:3, w:.55, l:1.55, curl:.38, tilt:.32, y:0,   off:0},
+        {n:3, w:.62, l:1.68, curl:.45, tilt:.82, y:-.03,off:Math.PI/3}
+      ],
+      stamens:6, stemLen:2.7, leafCount:3, leafY:-1.05,
+      leafW:.26, leafL:1.35, leafCurl:.5, leafTilt:1.15,
+      color:0xffd35c
+    },
+    girasol: {
+      whorls:[
+        {n:21, w:.24, l:1.5, curl:.06, tilt:1.36, y:0, off:0}
+      ],
+      disc:.62, stemLen:3.0, leafCount:2, leafY:-1.4,
+      leafW:.42, leafL:1.55, leafCurl:.35, leafTilt:1.05,
+      color:0xffce3d
+    },
+    rosa: {
+      whorls:[
+        {n:5, w:.36, l:1.0,  curl:.62, tilt:.24, y:.05,  off:0},
+        {n:6, w:.46, l:1.25, curl:.4,  tilt:.6,  y:0,    off:Math.PI/5},
+        {n:7, w:.54, l:1.4,  curl:.18, tilt:1.0, y:-.04, off:Math.PI/6.5}
+      ],
+      stemLen:2.4, leafCount:2, leafY:-.95,
+      leafW:.3, leafL:1.1, leafCurl:.4, leafTilt:1.1,
+      color:0xffe27a
+    }
+  };
+  function pickPreset(){
+    if(PRESETS[FLOWER_TYPE]) return PRESETS[FLOWER_TYPE];
+    const keys = Object.keys(PRESETS);
+    return PRESETS[keys[Math.floor(Math.random()*keys.length)]];
+  }
+
+  // pétalo/hoja: malla tejida (grid) que se afina hacia la punta y se curva
+  function buildBladeGeo(width, length, curl, segW, segL){
+    const geo = new THREE.PlaneGeometry(1,1,segW,segL);
+    const pos = geo.attributes.position;
+    for(let i=0;i<pos.count;i++){
+      const px = pos.getX(i)+0.5, py = pos.getY(i)+0.5; // 0..1
+      const taper = Math.sin(Math.PI*Math.min(py,1)*0.98+0.01);
+      const x = (px-0.5) * width * taper;
+      const y = py * length;
+      const z = curl * py*py;
+      pos.setXYZ(i, x, y, z);
+    }
+    pos.needsUpdate = true;
+    geo.computeVertexNormals();
+    return geo;
+  }
+
+  function wireMesh(geo, color, opacity){
+    return new THREE.Mesh(geo, new THREE.MeshBasicMaterial({
+      color, wireframe:true, transparent:true, opacity,
+      blending:THREE.AdditiveBlending, depthWrite:false
+    }));
+  }
+
+  function addWhorl(group, wh, color, segW, segL){
+    for(let i=0;i<wh.n;i++){
+      const az = wh.off + (i/wh.n)*Math.PI*2;
+      const geo = buildBladeGeo(wh.w, wh.l, wh.curl, segW, segL);
+      const m = wireMesh(geo, color, .8);
+      m.position.y = wh.y;
+      m.rotation.x = wh.tilt;
+      m.rotation.y = az;
+      group.add(m);
+    }
+  }
+
+  function buildFlower(){
+    const group = new THREE.Group();
+    const p = pickPreset();
+
+    p.whorls.forEach(wh => addWhorl(group, wh, p.color, 5, 12));
+
+    if(p.disc){ // disco central plano (girasol)
+      const disc = wireMesh(new THREE.CylinderGeometry(p.disc,p.disc,.05,28,3), 0x6b4226, .8);
+      group.add(disc);
+    }
+    if(p.stamens){ // estambres finos (tulipán/rosa)
+      for(let i=0;i<p.stamens;i++){
+        const az = (i/p.stamens)*Math.PI*2;
+        const st = wireMesh(new THREE.CylinderGeometry(.008,.014,.85,5), 0xfff3c4, .7);
+        st.position.set(Math.cos(az)*.04, .42, Math.sin(az)*.04);
+        st.rotation.set(Math.sin(az)*.09, 0, Math.cos(az)*.09);
+        group.add(st);
+      }
+    }
+
+    // tallo
+    const stem = wireMesh(new THREE.CylinderGeometry(.035,.05,p.stemLen,10,6), p.color, .55);
+    stem.position.y = -p.stemLen/2 + .05;
+    group.add(stem);
+
+    // hojas
+    for(let i=0;i<p.leafCount;i++){
+      const az = (i/p.leafCount)*Math.PI*2 + Math.PI/6;
+      const geo = buildBladeGeo(p.leafW, p.leafL, p.leafCurl, 4, 12);
+      const leaf = wireMesh(geo, p.color, .5);
+      leaf.position.y = p.leafY;
+      leaf.rotation.x = p.leafTilt;
+      leaf.rotation.y = az;
+      group.add(leaf);
+    }
+
+    group.rotation.x = -0.3;
+    return group;
+  }
+
+  /* ---------------- escena 3D ---------------- */
+  let scene, camera, renderer, composer, flowerGroup, spinBoost = 0, useBloom = true;
+
+  function initThree(){
+    const canvas = document.getElementById('three-canvas');
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x0a0709);
+
+    camera = new THREE.PerspectiveCamera(40, innerWidth/innerHeight, 0.1, 100);
+    camera.position.set(0, 0.1, 8.2);
+    camera.lookAt(0,-0.5,0);
+
+    renderer = new THREE.WebGLRenderer({canvas, antialias:true});
+    renderer.setSize(innerWidth, innerHeight);
+    renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.05;
+    renderer.outputEncoding = THREE.sRGBEncoding;
+
+    scene.add(new THREE.AmbientLight(0x2a1c10, .7));
+    const key = new THREE.DirectionalLight(0xffdca0, .9);
+    key.position.set(3,4,5); scene.add(key);
+    const rim = new THREE.PointLight(0xffb84d, .8, 20);
+    rim.position.set(-4,1,-2); scene.add(rim);
+
+    flowerGroup = buildFlower();
+    scene.add(flowerGroup);
+
+    try{
+      composer = new THREE.EffectComposer(renderer);
+      composer.addPass(new THREE.RenderPass(scene, camera));
+      const bloom = new THREE.UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight), 0.85, 0.4, 0.25);
+      composer.addPass(bloom);
+      useBloom = true;
+    }catch(e){ useBloom = false; }
+
+    const clock = new THREE.Clock();
+    (function animate(){
+      requestAnimationFrame(animate);
+      const t = clock.getElapsedTime();
+      const speed = reduceMotion ? 0.05 : 0.22 + spinBoost;
+      flowerGroup.rotation.y += speed * 0.016;
+      spinBoost *= 0.94;
+      flowerGroup.position.y = Math.sin(t*0.6)*0.05;
+      if(useBloom && composer) composer.render(); else renderer.render(scene,camera);
+    })();
+
+    addEventListener('resize', ()=>{
+      camera.aspect = innerWidth/innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(innerWidth, innerHeight);
+      if(composer) composer.setSize(innerWidth, innerHeight);
+    });
+  }
+
+  document.body.addEventListener('pointerdown', (e)=>{
+    if(!mainEl.classList.contains('show')) return;
+    if(e.target.closest('.card')) return;
+    burst(e.clientX, e.clientY);
+    spinBoost = Math.min(spinBoost + 1.6, 4);
+  });
+</script>
+</body>
+</html>
